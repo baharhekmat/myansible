@@ -1,0 +1,63 @@
+---
+- name: create user
+  hosts: all
+  become: true
+  tasks:
+  - name: create user aaa
+    user: name=aaa
+- name: copying files
+  hosts: all
+  become: true  
+  tasks:
+  - name: copy index.html on deploy server
+    copy:
+      src: /etc/ansible/index.html
+      dest: /var/www/html/index.html
+    when: ansible_os_family == "Debian"    
+- name: installing and running new pkgs
+  hosts: all
+  become: true
+  tasks:
+  - name: install pkgs on freebsd
+    pkgng:
+      name: bash,bash-completion,wget 
+      state: present
+    when: ansible_os_family == "FreeBSD"    
+  - name: installing multiple pkg on debians
+    apt:
+      name: "{{item}}"
+      state: latest
+    when: ansible_os_family == "Debian"  
+    with_items: 
+      - git
+      - telnet
+      - make
+      - gzip  
+      - gimp
+      - tree  
+  - name: uninstalling some pkgs on debians
+    apt:
+      name: ['gimp','tree']
+      state: absent
+    when: ansible_os_family == "Debian"  
+  - name: uninstalling using loops on debians
+    apt:
+      name: "{{ item.pkg }}"
+      state: "{{ item.setup }}" 
+    when: ansible_os_family == "Debian"  
+    loop:
+      - { pkg: 'make', setup: 'latest' }
+      - { pkg: 'tree', setup: 'absent' }
+      - { pkg: 'wget', setup: 'latest' }
+  - name: installing apache2 pkg on debian
+    apt:
+      name: apache2
+      state: latest
+    when: ansible_os_family == "Debian"    
+    notify: start apache2 service on debians
+  handlers:
+  - name: start apache2 service on debians
+    service:
+      name: apache2
+      state: restarted
+    when: ansible_os_family == "Debian" 
